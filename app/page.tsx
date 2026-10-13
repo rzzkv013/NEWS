@@ -41,25 +41,166 @@ export default function Home() {
   const fetchNews = async (query: string) => {
     setLoading(true);
     try {
-      const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY;
-      if (!apiKey) {
-        console.error("API Kalit topilmadi!");
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(
-        `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&pageSize=12&sortBy=publishedAt&apiKey=${apiKey}`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0',
-          },
-        }
-      );
+      const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY || '015230f045dd4b30862a53b63675581f';
+      
+      // News API Vercel'da bloklanmasligi uchun CORS proxy orqali so'rov yuboramiz
+      const targetUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&pageSize=12&sortBy=publishedAt&apiKey=${apiKey}`;
+      const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
       
       const data = await res.json();
-      if (res.ok) {
-        setArticles(data.articles || []);
+      if (res.ok && data.articles) {
+        setArticles(data.articles);
+      } else {
+        console.error("News API Xatoligi:", data);
+        setArticles([]);
+      }
+    } catch (err) {
+      console.error("Fetch xatoligi:", err);
+      setArticles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNews(selectedCategory.query);
+  }, [selectedCategory]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      fetchNews(searchQuery);
+    }
+  };
+
+  return (
+    <div className={`min-h-screen transition-colors duration-500 relative overflow-hidden font-sans selection:bg-indigo-500 selection:text-white ${
+      isDarkMode ? 'bg-[#0a0d14] text-slate-100' : 'bg-slate-50 text-slate-800'
+    }`}>
+
+      {/* ===== ORQA FONDA SUZIB YURUVCHI MOTION ANIMATSIYALAR ===== */}
+      <motion.div
+        animate={{
+          x: [0, 100, -80, 0],
+          y: [0, -120, 60, 0],
+          scale: [1, 1.2, 0.9, 1],
+        }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -top-20 -left-20 w-[450px] h-[450px] bg-indigo-600/30 dark:bg-indigo-600/20 rounded-full blur-[130px] pointer-events-none"
+      />
+
+      <motion.div
+        animate={{
+          x: [0, -120, 100, 0],
+          y: [0, 100, -90, 0],
+          scale: [1, 0.8, 1.1, 1],
+        }}
+        transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute top-1/3 -right-20 w-[400px] h-[400px] bg-purple-600/30 dark:bg-purple-600/20 rounded-full blur-[140px] pointer-events-none"
+      />
+
+      <motion.div
+        animate={{
+          x: [0, 80, -100, 0],
+          y: [0, -80, 100, 0],
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute -bottom-20 left-1/3 w-[380px] h-[380px] bg-pink-500/20 dark:bg-pink-600/15 rounded-full blur-[120px] pointer-events-none"
+      />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+
+        {/* TOP BAR / Oq Qora Rejim Almashtirgich */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-2 font-bold text-lg tracking-wide text-indigo-600 dark:text-indigo-400">
+            <Sparkles className="w-5 h-5 animate-spin" />
+            <span>NEWS PORTAL</span>
+          </div>
+
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 shadow-md hover:scale-110 active:scale-95 transition-all text-indigo-500"
+          >
+            {isDarkMode ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
+          </button>
+        </div>
+
+        {/* Header Sarlavha */}
+        <header className="text-center max-w-3xl mx-auto mb-10 space-y-3">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl sm:text-6xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-white dark:via-slate-200 dark:to-indigo-300"
+          >
+            Eng So'nggi Yangiliklar
+          </motion.h1>
+
+          <p className="text-slate-500 dark:text-slate-400 text-sm sm:text-base">
+            Multfilmlar, Sport va Dunyo yangiliklarini real-vaqt rejimida kuzatib boring
+          </p>
+        </header>
+
+        {/* QIDIRUV VA O'ZBEKCHA FILTRLAR */}
+        <div className="space-y-6 mb-12">
+          <form onSubmit={handleSearch} className="max-w-xl mx-auto relative group">
+            <input
+              type="text"
+              placeholder="Kalit so'z bo'yicha qidiring..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl py-3.5 pl-12 pr-28 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all shadow-lg placeholder:text'use client';
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { Search, Sparkles, Sun, Moon, Film, Trophy, Laptop, Gamepad2, Briefcase, Globe, ExternalLink, Calendar } from 'lucide-react';
+
+interface Article {
+  source: { name: string };
+  author: string | null;
+  title: string;
+  description: string | null;
+  url: string;
+  urlToImage: string | null;
+  publishedAt: string;
+}
+
+const CATEGORIES = [
+  { id: 'all', name: 'Barchasi', query: 'latest', icon: Globe },
+  { id: 'cartoons', name: 'Multfilmlar', query: 'cartoon OR animation OR disney', icon: Film },
+  { id: 'sport', name: 'Sport', query: 'sports OR football OR basketball', icon: Trophy },
+  { id: 'tech', name: 'Texnologiya', query: 'technology OR software', icon: Laptop },
+  { id: 'gaming', name: "O'yinlar", query: 'gaming OR esports', icon: Gamepad2 },
+  { id: 'business', name: 'Biznes', query: 'business OR economy', icon: Briefcase },
+];
+
+export default function Home() {
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState(CATEGORIES[0]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const fetchNews = async (query: string) => {
+    setLoading(true);
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY || '015230f045dd4b30862a53b63675581f';
+      
+      // News API Vercel'da bloklanmasligi uchun CORS proxy orqali so'rov yuboramiz
+      const targetUrl = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&pageSize=12&sortBy=publishedAt&apiKey=${apiKey}`;
+      const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+      
+      const data = await res.json();
+      if (res.ok && data.articles) {
+        setArticles(data.articles);
       } else {
         console.error("News API Xatoligi:", data);
         setArticles([]);
@@ -233,7 +374,7 @@ export default function Home() {
   );
 }
 
-// Alohida Karta Komponenti (Shu faylning o'zida turadi)
+// Alohida Karta Komponenti
 function NewsCardItem({ article, index }: { article: Article; index: number }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
